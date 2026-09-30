@@ -1,0 +1,2073 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B737-800 갤리 카트 배치도 — 국제선 (세로 실사 & 드로워 뷰어)</title>
+    <meta name="description" content="B737-800 국제선 FWD/AFT 갤리 카트 배치 실사 세로형 뷰어 및 드로워별 내부 구성 확인 시뮬레이션">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════ RESET & BASE — OCEANIX MARITIME STYLE ═══════════════ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --orange: #FF5500;
+            --orange-soft: #FF7A33;
+            --bg: #F0F2F5;
+            --bg-card: rgba(255,255,255,0.82);
+            --bg-dark: #0D1117;
+            --bg-dark-card: rgba(13,17,23,0.92);
+            --text: #111827;
+            --text-muted: #6B7280;
+            --text-light: #9CA3AF;
+            --border: rgba(0,0,0,0.07);
+            --border-dark: rgba(255,255,255,0.08);
+            --green: #10B981;
+            --blue: #3B82F6;
+            --purple: #8B5CF6;
+            --pink: #EC4899;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --slate: #6B7280;
+            --radius: 16px;
+            --shadow-soft: 0 4px 24px rgba(0,0,0,0.06);
+            --shadow-hover: 0 12px 40px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', 'Malgun Gothic', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Dot-grid matrix texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle, #C5CBD3 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.35;
+        }
+
+        /* ═══════════════ APP CONTAINER ═══════════════ */
+        .app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1020px;
+            padding: 28px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ═══════════════ HEADER — Command Center Style ═══════════════ */
+        .header {
+            text-align: left;
+            padding: 0 4px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header .sub .badge {
+            background: var(--orange);
+            color: #fff;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        /* ═══════════════ AIRCRAFT MINIMAP ═══════════════ */
+        .minimap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 0 20px;
+            user-select: none;
+        }
+
+        .minimap-zone {
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            transition: all 0.3s ease;
+            position: relative;
+            text-transform: uppercase;
+        }
+
+        .minimap-zone.nose {
+            width: 50px;
+            border-radius: 16px 0 0 16px;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+            border-right: none;
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        .minimap-zone.fwd-zone {
+            width: 75px;
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 10px;
+        }
+
+        .minimap-zone.fwd-zone.active {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255,85,0,0.25);
+        }
+
+        .minimap-zone.cabin {
+            flex: 1;
+            max-width: 450px;
+            height: 28px;
+            background: rgba(0,0,0,0.02);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .minimap-zone.cabin::after {
+            content: '';
+            position: absolute;
+            inset: 5px 10px;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 2px,
+                transparent 2px, transparent 8px
+            );
+            border-radius: 2px;
+        }
+
+        .minimap-zone.aft-zone {
+            width: 85px;
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 10px;
+        }
+
+        .minimap-zone.aft-zone.active {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255,85,0,0.25);
+        }
+
+        .minimap-zone.tail {
+            width: 40px;
+            border-radius: 0 16px 16px 0;
+            background: rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+            border-left: none;
+            color: var(--text-light);
+            font-size: 10px;
+            position: relative;
+        }
+
+        /* ═══════════════ CONTROLS & TABS — Capsule Pills ═══════════════ */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .view-tabs {
+            display: flex;
+            background: rgba(0,0,0,0.04);
+            border-radius: 12px;
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+
+        .view-tab {
+            padding: 8px 22px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 9px;
+            transition: all 0.3s ease;
+        }
+
+        .view-tab.active {
+            background: var(--orange);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255,85,0,0.3);
+        }
+
+        .view-tab:not(.active):hover {
+            color: var(--text);
+            background: rgba(0,0,0,0.04);
+        }
+
+        .display-tabs {
+            display: flex;
+            background: rgba(0,0,0,0.04);
+            border-radius: 12px;
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+
+        .display-tab {
+            padding: 7px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 9px;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .display-tab.active {
+            background: var(--text);
+            color: #fff;
+        }
+
+        .config-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px;
+            background: rgba(0,0,0,0.04);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .config-btn {
+            padding: 7px 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.25s;
+            white-space: nowrap;
+        }
+
+        .config-btn.active {
+            background: var(--purple);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(139,92,246,0.25);
+        }
+
+        /* ═══════════════ MAIN GALLEY VIEW ═══════════════ */
+        .galley-view {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        .galley-view.hidden {
+            display: none;
+        }
+
+        .galley-card-frame {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(16px);
+        }
+
+        .galley-header-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .galley-title-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .galley-title-tag > span:first-child {
+            color: var(--orange) !important;
+        }
+
+        .galley-hint {
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        /* ═══════════════ PHOTO VIEW CONTAINER ═══════════════ */
+        .photo-container {
+            position: relative;
+            width: 100%;
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--bg-dark);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .photo-img {
+            width: 100%;
+            height: auto;
+            max-height: 520px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .photo-hotspot {
+            position: absolute;
+            border: 1.5px solid var(--hc, var(--orange));
+            background: color-mix(in srgb, var(--hc, var(--orange)) 14%, transparent);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            backdrop-filter: blur(3px);
+            z-index: 10;
+        }
+
+        .photo-hotspot:hover {
+            border-width: 2px;
+            background: color-mix(in srgb, var(--hc, var(--orange)) 35%, transparent);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--hc, var(--orange)), 0 0 50px rgba(0,0,0,0.6);
+            z-index: 20;
+        }
+
+        .photo-hotspot .hs-badge {
+            background: rgba(13,17,23,0.92);
+            color: #f8fafc;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--hc, var(--orange));
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            pointer-events: none;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 9px;
+            letter-spacing: 0.3px;
+        }
+
+        .photo-hotspot .hs-sub {
+            font-size: 9px;
+            color: #cbd5e1;
+            margin-top: 2px;
+            font-weight: 600;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+
+        .photo-hotspot.cfg-hidden { display: none; }
+
+        /* ═══════════════ GRAPHIC 2.5D VIEW CONTAINER ═══════════════ */
+        .graphic-container { padding: 20px; }
+
+        .fwd-carts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .aft-carts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr 1px 1fr;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .aft-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .column-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .column-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            border-radius: 2px;
+            background: var(--orange);
+        }
+
+        .v-divider {
+            width: 1px;
+            background: linear-gradient(180deg, transparent, var(--border), transparent);
+        }
+
+        /* ═══════════════ CART CARDS — Glassmorphic ═══════════════ */
+        .cart-card {
+            position: relative;
+            background: rgba(255,255,255,0.65);
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .cart-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: var(--cc);
+            border-radius: 14px 0 0 14px;
+            transition: width 0.3s ease;
+        }
+
+        .cart-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cc);
+            box-shadow: var(--shadow-hover), 0 0 0 1px color-mix(in srgb, var(--cc) 20%, transparent);
+        }
+
+        .cart-card:hover::before { width: 6px; }
+
+        .cart-card .cc-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .cart-card .cc-icon { font-size: 22px; }
+
+        .cart-card .cc-type {
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .cart-card .cc-type.half {
+            background: rgba(255,85,0,0.08);
+            color: var(--orange);
+            border: 1px solid rgba(255,85,0,0.18);
+        }
+
+        .cart-card .cc-type.full {
+            background: rgba(59,130,246,0.08);
+            color: var(--blue);
+            border: 1px solid rgba(59,130,246,0.18);
+        }
+
+        .cart-card .cc-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .cart-card .cc-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .cart-card.cfg-hidden { display: none; }
+
+        /* ═══════════════ MODAL — Dark HUD Command Panel ═══════════════ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .detail-panel {
+            background: var(--bg-dark);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 0;
+            width: 100%;
+            max-width: 520px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,85,0,0.08);
+            animation: panelSlideUp 0.35s cubic-bezier(0.16,1,0.3,1);
+            position: relative;
+        }
+
+        .detail-panel::-webkit-scrollbar { width: 5px; }
+        .detail-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+        @keyframes panelSlideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .detail-accent {
+            position: absolute;
+            top: 0; left: 24px; right: 24px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--detail-color), color-mix(in srgb, var(--detail-color) 40%, white));
+            border-radius: 0 0 3px 3px;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 26px 24px 14px;
+        }
+
+        .detail-icon-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(255,85,0,0.08);
+            border: 1px solid rgba(255,85,0,0.12);
+            flex-shrink: 0;
+        }
+
+        .detail-header-text { flex: 1; min-width: 0; }
+
+        .detail-header-text h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #F1F5F9;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+
+        .detail-header-text .detail-pos {
+            font-size: 11px;
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-light);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .detail-close:hover {
+            background: rgba(255,85,0,0.12);
+            border-color: rgba(255,85,0,0.3);
+            color: var(--orange);
+        }
+
+        .detail-badges {
+            display: flex;
+            gap: 8px;
+            padding: 0 24px 14px;
+            flex-wrap: wrap;
+        }
+
+        .d-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .d-badge.type-half {
+            background: rgba(255,85,0,0.1);
+            color: var(--orange-soft);
+            border: 1px solid rgba(255,85,0,0.2);
+        }
+
+        .d-badge.type-full {
+            background: rgba(59,130,246,0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+
+        .d-badge.dual-side {
+            background: rgba(168,85,247,0.1);
+            color: #c084fc;
+            border: 1px solid rgba(168,85,247,0.2);
+        }
+
+        .d-badge.route-dep {
+            background: rgba(245,158,11,0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(245,158,11,0.2);
+        }
+
+        .d-badge.conditional {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-light);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* 📷 PORTRAIT TALL CART PHOTO VIEWER FRAME — Dark HUD */
+        .cart-photo-box {
+            margin: 0 24px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .photo-box-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .photo-box-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Mode Tabs — Dark capsule pills */
+        .photo-door-btns {
+            display: flex;
+            gap: 3px;
+            background: rgba(255,255,255,0.04);
+            padding: 3px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            width: 100%;
+        }
+
+        .door-btn {
+            flex: 1;
+            padding: 7px 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.25s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .door-btn.active {
+            background: var(--orange);
+            color: white;
+            box-shadow: 0 2px 10px rgba(255,85,0,0.35);
+        }
+
+        /* Drawer Selector Chips */
+        .drawer-chips-bar {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.03);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,85,0,0.15);
+            overflow-x: auto;
+        }
+
+        .drawer-chip {
+            flex: 1;
+            padding: 6px 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 7px;
+            transition: all 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .drawer-chip.active {
+            background: rgba(16,185,129,0.15);
+            color: var(--green);
+            border: 1px solid rgba(16,185,129,0.35);
+            font-weight: 700;
+        }
+
+        /* Tall Vertical Portrait Stage */
+        .photo-view-stage {
+            position: relative;
+            width: 100%;
+            max-width: 290px;
+            height: 380px;
+            margin: 0 auto;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #060A10;
+            border: 1.5px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.6), 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        .photo-view-stage img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Fallback placeholder card */
+        .photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            text-align: center;
+            gap: 10px;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255,85,0,0.04), rgba(13,17,23,0.95));
+        }
+
+        .photo-placeholder .p-icon { font-size: 36px; opacity: 0.7; }
+
+        .photo-placeholder .p-status {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--orange);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .photo-placeholder .p-filename {
+            font-size: 10px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            background: rgba(255,255,255,0.06);
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: var(--green);
+            border: 1px solid rgba(16,185,129,0.25);
+            word-break: break-all;
+            letter-spacing: 0.3px;
+        }
+
+        .photo-placeholder .p-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+            max-width: 240px;
+            line-height: 1.4;
+        }
+
+        /* ═══ UPLOAD CONTROLS ═══ */
+        .upload-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px 0;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 20px;
+            background: var(--orange);
+            border: none;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            user-select: none;
+            box-shadow: 0 4px 16px rgba(255,85,0,0.3);
+        }
+
+        .upload-btn:hover {
+            background: #E64D00;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255,85,0,0.4);
+        }
+
+        .delete-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 20px;
+            color: #f87171;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239,68,68,0.2);
+            border-color: rgba(239,68,68,0.5);
+            transform: translateY(-1px);
+        }
+
+        .upload-slot-label {
+            padding: 4px 24px 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-content { padding: 0 24px 14px; }
+        .detail-section { margin-bottom: 14px; }
+
+        .detail-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .detail-items { list-style: none; }
+
+        .detail-items li {
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 13px;
+            color: #CBD5E1;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .detail-items li:last-child { border-bottom: none; }
+
+        .detail-items li::before {
+            content: '▹';
+            color: var(--detail-color, var(--orange));
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .highlight { color: var(--orange); font-weight: 600; }
+
+        .detail-note {
+            display: flex;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.12);
+            border-radius: 12px;
+            margin: 0 24px 16px;
+        }
+
+        .detail-note p {
+            font-size: 12px;
+            color: #fbbf24;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .detail-footer { padding: 0 24px 20px; }
+
+        .detail-close-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-light);
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .detail-close-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #F1F5F9;
+        }
+
+        /* ═══════════════ NAMING GUIDE PANEL ═══════════════ */
+        .guide-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            margin-top: 8px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .guide-box summary {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--orange);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            font-size: 11px;
+        }
+
+        .guide-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.04);
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .guide-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .guide-table code {
+            color: var(--orange);
+            background: rgba(255,85,0,0.06);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 10px;
+        }
+
+        /* ═══════════════ LEGEND ═══════════════ */
+        .legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 3px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: var(--text-light);
+            padding-bottom: 10px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .app { padding: 12px; }
+            .header h1 { font-size: 18px; }
+            .aft-carts-grid { grid-template-columns: 1fr; }
+            .v-divider { display: none; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- ═══ HEADER ═══ -->
+        <header class="header">
+            <h1>✈ B737-800 갤리 카트 배치도</h1>
+            <p class="sub">
+                <span class="badge">국제선 INT'L</span>
+                카트를 클릭하면 세로 세팅 실사 및 드로워별 상부 내부 촬영 사진을 확인하실 수 있습니다
+            </p>
+        </header>
+
+        <!-- ═══ AIRCRAFT MINIMAP ═══ -->
+        <div class="minimap">
+            <div class="minimap-zone nose">✈</div>
+            <div class="minimap-zone fwd-zone active" id="mm-fwd" onclick="switchGalley('fwd')">FWD</div>
+            <div class="minimap-zone cabin"></div>
+            <div class="minimap-zone aft-zone" id="mm-aft" onclick="switchGalley('aft')">AFT</div>
+            <div class="minimap-zone tail"></div>
+        </div>
+
+        <!-- ═══ CONTROLS BAR ═══ -->
+        <div class="controls-bar">
+            <div class="view-tabs">
+                <button class="view-tab active" id="tab-fwd" onclick="switchGalley('fwd')">FWD 갤리 (전방)</button>
+                <button class="view-tab" id="tab-aft" onclick="switchGalley('aft')">AFT 갤리 (후방)</button>
+            </div>
+
+            <div class="display-tabs">
+                <button class="display-tab active" id="mode-photo" onclick="switchDisplayMode('photo')">📸 실사 배치도</button>
+                <button class="display-tab" id="mode-graphic" onclick="switchDisplayMode('graphic')">📐 2.5D 구조도</button>
+            </div>
+
+            <div class="config-toggle" id="config-toggle">
+                <button class="config-btn active" id="cfg-a" onclick="switchConfig('a')">사전기내식 추가</button>
+                <button class="config-btn" id="cfg-b" onclick="switchConfig('b')">에어카페 추가</button>
+            </div>
+        </div>
+
+        <!-- ═══ FWD GALLEY VIEW ═══ -->
+        <div class="galley-view" id="galley-fwd">
+            <div class="galley-card-frame">
+                <div class="galley-header-strip">
+                    <div class="galley-title-tag">
+                        <span>FRONT GALLEY (FWD)</span>
+                        <span style="font-size:11px; font-weight:400; color:#64748b;">· 조종석 방향</span>
+                    </div>
+                    <div class="galley-hint">👇 카트 영역을 클릭하여 세팅 세부사항 & 사진 확인</div>
+                </div>
+
+                <!-- FWD PHOTO VIEW -->
+                <div class="photo-container" id="fwd-photo-wrap">
+                    <img src="./fwd_galley_photo.png" alt="FWD Galley Carts Photo" class="photo-img">
+
+                    <div class="photo-hotspot" style="top:42%; left:4%; width:34%; height:20%; --hc:#10b981;" onclick="showDetail('fwd-crew')">
+                        <div class="hs-badge">👨‍✈️ 크루밀 (Half)</div>
+                        <div class="hs-sub">조종사/승무원 식사</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:65%; left:4%; width:34%; height:22%; --hc:#3b82f6;" onclick="showDetail('fwd-water')">
+                        <div class="hs-badge">💧 사전기내식 생수</div>
+                        <div class="hs-sub">전방 승객 생수 전용</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:32%; left:65%; width:31%; height:18%; --hc:#f97316;" onclick="showDetail('fwd-svc')">
+                        <div class="hs-badge">🧴 SVC / 2L생수</div>
+                        <div class="hs-sub">기내 서비스 용품</div>
+                    </div>
+
+                    <div class="photo-hotspot config-a" id="hs-fwd-preorder" style="top:53%; left:65%; width:31%; height:18%; --hc:#ef4444;" onclick="showDetail('fwd-preorder')">
+                        <div class="hs-badge">🍱 사전기내식 추가</div>
+                        <div class="hs-sub">노선별 추가 트레이</div>
+                    </div>
+
+                    <div class="photo-hotspot config-b cfg-hidden" id="hs-fwd-ac1" style="top:53%; left:65%; width:15%; height:18%; --hc:#8b5cf6;" onclick="showDetail('fwd-aircafe1')">
+                        <div class="hs-badge" style="font-size:9px; padding:2px 4px;">☕ 에어카페 ①</div>
+                    </div>
+                    <div class="photo-hotspot config-b cfg-hidden" id="hs-fwd-ac2" style="top:53%; left:81%; width:15%; height:18%; --hc:#8b5cf6;" onclick="showDetail('fwd-aircafe2')">
+                        <div class="hs-badge" style="font-size:9px; padding:2px 4px;">☕ 에어카페 ②</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:74%; left:65%; width:31%; height:20%; --hc:#6b7280;" onclick="showDetail('fwd-acml')">
+                        <div class="hs-badge">✈️ ACML (B/L 전용)</div>
+                        <div class="hs-sub">비즈니스 라이트 기종</div>
+                    </div>
+                </div>
+
+                <!-- FWD GRAPHIC VIEW -->
+                <div class="graphic-container" id="fwd-graphic-wrap" style="display:none;">
+                    <div class="column-title">L1 / R1 갤리 카트 구조도</div>
+                    <div class="fwd-carts-grid">
+                        <div class="cart-card" style="--cc:#10b981;" onclick="showDetail('fwd-crew')">
+                            <div class="cc-top"><span class="cc-icon">👨‍✈️</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">크루밀 하프카트</div>
+                            <div class="cc-desc">운항/객실 승무원 식사 탑재</div>
+                        </div>
+
+                        <div class="cart-card" style="--cc:#3b82f6;" onclick="showDetail('fwd-water')">
+                            <div class="cc-top"><span class="cc-icon">💧</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">사전기내식 생수</div>
+                            <div class="cc-desc">사전기내식용 개별 생수 (FWD 전용)</div>
+                        </div>
+
+                        <div class="cart-card" style="--cc:#f97316;" onclick="showDetail('fwd-svc')">
+                            <div class="cc-top"><span class="cc-icon">🧴</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">SVC 아이템 / 2L생수</div>
+                            <div class="cc-desc">수저, 종이컵, 2L생수(눕혀서 탑재)</div>
+                        </div>
+
+                        <div class="cart-card config-a" style="--cc:#ef4444;" onclick="showDetail('fwd-preorder')">
+                            <div class="cc-top"><span class="cc-icon">🍱</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">사전기내식 추가탑재</div>
+                            <div class="cc-desc">노선 옵션 A: 사전기내식 추가분</div>
+                        </div>
+
+                        <div class="cart-card config-b cfg-hidden" style="--cc:#8b5cf6;" onclick="showDetail('fwd-aircafe1')">
+                            <div class="cc-top"><span class="cc-icon">☕</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">에어카페 추가 ①</div>
+                            <div class="cc-desc">노선 옵션 B: 에어카페 추가분</div>
+                        </div>
+
+                        <div class="cart-card config-b cfg-hidden" style="--cc:#8b5cf6;" onclick="showDetail('fwd-aircafe2')">
+                            <div class="cc-top"><span class="cc-icon">☕</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">에어카페 추가 ②</div>
+                            <div class="cc-desc">노선 옵션 B: 에어카페 추가분</div>
+                        </div>
+
+                        <div class="cart-card" style="--cc:#6b7280;" onclick="showDetail('fwd-acml')">
+                            <div class="cc-top"><span class="cc-icon">✈️</span><span class="cc-type half">HALF</span></div>
+                            <div class="cc-name">ACML 카트</div>
+                            <div class="cc-desc">비즈니스 라이트 (B/L) 전용</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ AFT GALLEY VIEW ═══ -->
+        <div class="galley-view hidden" id="galley-aft">
+            <div class="galley-card-frame">
+                <div class="galley-header-strip">
+                    <div class="galley-title-tag">
+                        <span>REAR GALLEY (AFT)</span>
+                        <span style="font-size:11px; font-weight:400; color:#64748b;">· 꼬리날개 방향</span>
+                    </div>
+                    <div class="galley-hint">👇 카트 영역을 클릭하여 세팅 세부사항 & 사진 확인</div>
+                </div>
+
+                <!-- AFT PHOTO VIEW -->
+                <div class="photo-container" id="aft-photo-wrap">
+                    <img src="./aft_galley_photo.png" alt="AFT Galley Carts Photo" class="photo-img">
+
+                    <div class="photo-hotspot" style="top:52%; left:26%; width:8.5%; height:30%; --hc:#8b5cf6;" onclick="showDetail('aft-ac1')">
+                        <div class="hs-badge" style="font-size:10px; padding:2px 4px;">☕ 에어카페①</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:52%; left:35.5%; width:8.5%; height:30%; --hc:#8b5cf6;" onclick="showDetail('aft-ac2')">
+                        <div class="hs-badge" style="font-size:10px; padding:2px 4px;">☕ 에어카페②</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:52%; left:44.5%; width:13%; height:30%; --hc:#f97316;" onclick="showDetail('aft-svc')">
+                        <div class="hs-badge" style="font-size:10px; padding:2px 5px;">🔄 SVC/사전</div>
+                        <div class="hs-sub">양면카트</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:52%; left:61%; width:9.5%; height:30%; --hc:#ec4899;" onclick="showDetail('aft-df1')">
+                        <div class="hs-badge" style="font-size:10px; padding:2px 4px;">🛍️ 면세①</div>
+                    </div>
+
+                    <div class="photo-hotspot" style="top:52%; left:71.5%; width:9.5%; height:30%; --hc:#ec4899;" onclick="showDetail('aft-df2')">
+                        <div class="hs-badge" style="font-size:10px; padding:2px 4px;">🛍️ 면세②</div>
+                    </div>
+                </div>
+
+                <!-- AFT GRAPHIC VIEW -->
+                <div class="graphic-container" id="aft-graphic-wrap" style="display:none;">
+                    <div class="aft-carts-grid">
+                        <div class="aft-column">
+                            <div class="column-title">L2 도어 사이드 (에어카페)</div>
+                            <div class="cart-card" style="--cc:#8b5cf6;" onclick="showDetail('aft-ac1')">
+                                <div class="cc-top"><span class="cc-icon">☕</span><span class="cc-type full">FULL</span></div>
+                                <div class="cc-name">에어카페 풀카트 ①</div>
+                                <div class="cc-desc">라면, 스낵, 음료, POS 단말기</div>
+                            </div>
+                            <div class="cart-card" style="--cc:#8b5cf6;" onclick="showDetail('aft-ac2')">
+                                <div class="cc-top"><span class="cc-icon">☕</span><span class="cc-type full">FULL</span></div>
+                                <div class="cc-name">에어카페 풀카트 ②</div>
+                                <div class="cc-desc">라면 추가분, 핫음료, 소모품</div>
+                            </div>
+                        </div>
+
+                        <div class="v-divider"></div>
+
+                        <div class="aft-column">
+                            <div class="column-title">가운데 (중앙)</div>
+                            <div class="cart-card" style="--cc:#f97316;" onclick="showDetail('aft-svc')">
+                                <div class="cc-top"><span class="cc-icon">🔄</span><span class="cc-type full">FULL</span></div>
+                                <div class="cc-name">SVC & 사전기내식</div>
+                                <div class="cc-desc">전면(SVC/2L생수) + 후면(사전기내식)</div>
+                            </div>
+                        </div>
+
+                        <div class="v-divider"></div>
+
+                        <div class="aft-column">
+                            <div class="column-title">R2 도어 사이드 (기내면세)</div>
+                            <div class="cart-card" style="--cc:#ec4899;" onclick="showDetail('aft-df1')">
+                                <div class="cc-top"><span class="cc-icon">🛍️</span><span class="cc-type full">FULL</span></div>
+                                <div class="cc-name">기내 면세 풀카트 ①</div>
+                                <div class="cc-desc">화장품, 주류, 담배 등 SELL 카트</div>
+                            </div>
+                            <div class="cart-card" style="--cc:#ec4899;" onclick="showDetail('aft-df2')">
+                                <div class="cc-top"><span class="cc-icon">🛍️</span><span class="cc-type full">FULL</span></div>
+                                <div class="cc-name">기내 면세 풀카트 ②</div>
+                                <div class="cc-desc">패션, 잡화, 건강식품 등</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ NAMING SYSTEM GUIDE FOR USER ═══ -->
+        <details class="guide-box">
+            <summary>📸 카트 외부/내부 & 드로워별 촬영 사진 파일명 저장 가이드 (클릭하여 펼치기)</summary>
+            <p style="font-size:12px; color:#94a3b8; margin-top:8px;">
+                촬영하신 사진을 아래 <strong>파일명 규칙</strong>대로 <code style="color:#fb923c">c:\Users\admin\Downloads\2.5D\</code> 폴더에 저장하시면 시뮬레이터 모달에서 실사 및 드로워별 위에서 찍은 내부 사진이 자동으로 연결됩니다!
+            </p>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>카트 위치 / 구분</th>
+                        <th>카트 명칭</th>
+                        <th>닫힘/정면 열림 파일명</th>
+                        <th>드로워별(1~5단) 내부 촬영 파일명 (위에서 아래로)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>FWD L1 상단</td>
+                        <td>크루밀 하프카트</td>
+                        <td><code>fwd_crew_closed.jpg</code><br><code>fwd_crew_open.jpg</code></td>
+                        <td><code>fwd_crew_drawer1.jpg</code> ~ <code>fwd_crew_drawer5.jpg</code></td>
+                    </tr>
+                    <tr>
+                        <td>FWD L1 하단</td>
+                        <td>사전기내식 생수 하프카트</td>
+                        <td><code>fwd_water_closed.jpg</code><br><code>fwd_water_open.jpg</code></td>
+                        <td><code>fwd_water_drawer1.jpg</code> ~ <code>fwd_water_drawer5.jpg</code></td>
+                    </tr>
+                    <tr>
+                        <td>FWD R1 상단</td>
+                        <td>SVC / 2L생수 하프카트</td>
+                        <td><code>fwd_svc_closed.jpg</code><br><code>fwd_svc_open.jpg</code></td>
+                        <td><code>fwd_svc_drawer1.jpg</code> ~ <code>fwd_svc_drawer5.jpg</code></td>
+                    </tr>
+                    <tr>
+                        <td>FWD R1 중단 (옵션A)</td>
+                        <td>사전기내식 추가 하프카트</td>
+                        <td><code>fwd_preorder_closed.jpg</code><br><code>fwd_preorder_open.jpg</code></td>
+                        <td><code>fwd_preorder_drawer1.jpg</code> ~ <code>fwd_preorder_drawer5.jpg</code></td>
+                    </tr>
+                    <tr>
+                        <td>FWD R1 중단 (옵션B)</td>
+                        <td>에어카페 추가 ① / ②</td>
+                        <td><code>fwd_aircafe1_open.jpg</code><br><code>fwd_aircafe2_open.jpg</code></td>
+                        <td><code>fwd_aircafe1_drawer1.jpg</code> ~ <code>drawer5.jpg</code></td>
+                    </tr>
+                    <tr style="background:rgba(139,92,246,0.08);">
+                        <td>AFT L2 (좌측)</td>
+                        <td>에어카페 풀카트 ① / ②</td>
+                        <td><code>aft_aircafe1_open.jpg</code><br><code>aft_aircafe2_open.jpg</code></td>
+                        <td><code>aft_aircafe1_drawer1.jpg</code> ~ <code>drawer5.jpg</code></td>
+                    </tr>
+                    <tr style="background:rgba(249,115,22,0.08);">
+                        <td>AFT Center (중앙)</td>
+                        <td>SVC / 사전기내식 양면 풀카트</td>
+                        <td><code>aft_svc_front_open.jpg</code> (전면)<br><code>aft_svc_back_open.jpg</code> (후면)</td>
+                        <td><code>aft_svc_front_drawer1.jpg</code> ~ <code>drawer5.jpg</code><br><code>aft_svc_back_drawer1.jpg</code> ~ <code>drawer5.jpg</code></td>
+                    </tr>
+                    <tr style="background:rgba(236,72,153,0.08);">
+                        <td>AFT R2 (우측)</td>
+                        <td>기내 면세 풀카트 ① / ②</td>
+                        <td><code>aft_dutyfree1_open.jpg</code><br><code>aft_dutyfree2_open.jpg</code></td>
+                        <td><code>aft_dutyfree1_drawer1.jpg</code> ~ <code>drawer5.jpg</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </details>
+
+        <!-- ═══ LEGEND ═══ -->
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> 크루밀</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> 생수</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> SVC 용품</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> 사전기내식</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> 에어카페</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 기내면세</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> ACML</div>
+        </div>
+
+        <div class="footer">B737-800 Galley Cart Layout Simulation · Vertical Portrait Cart Frame & Drawer View System</div>
+    </div>
+
+    <!-- ═══ CART DETAIL MODAL ═══ -->
+    <div class="modal-overlay" id="modal" onclick="closeDetail(event)">
+        <div class="detail-panel" onclick="event.stopPropagation()" id="detail-panel">
+            <div class="detail-accent" id="detail-accent"></div>
+
+            <div class="detail-header">
+                <div class="detail-icon-wrap" id="detail-icon-wrap">
+                    <span id="detail-icon"></span>
+                </div>
+                <div class="detail-header-text">
+                    <h2 id="detail-title"></h2>
+                    <p class="detail-pos" id="detail-pos"></p>
+                </div>
+                <button class="detail-close" onclick="closeDetail()">✕</button>
+            </div>
+
+            <div class="detail-badges" id="detail-badges"></div>
+
+            <!-- 📷 PORTRAIT CART PHOTO VIEWER FRAME -->
+            <div class="cart-photo-box" id="modal-photo-box">
+                <div class="photo-box-header">
+                    <div class="photo-box-title">📷 세로 카트 실사 & 드로워별 내부 구성</div>
+                    
+                    <!-- Main Mode Switcher: Closed / Open Front / Drawer Detail -->
+                    <div class="photo-door-btns" id="photo-door-btns">
+                        <button class="door-btn active" id="mode-btn-closed" onclick="setPhotoMode('closed')">🔒 도어 닫힘</button>
+                        <button class="door-btn" id="mode-btn-open" onclick="setPhotoMode('open')">🔓 도어열림 (정면)</button>
+                        <button class="door-btn" id="mode-btn-drawer" onclick="setPhotoMode('drawer')">📦 드로워 (위에서 촬영)</button>
+                    </div>
+                </div>
+
+                <!-- Dual side face tabs (for aft-svc) -->
+                <div id="dual-face-tabs" style="display:none; margin-bottom:8px; gap:4px;" class="photo-door-btns">
+                    <button class="door-btn active" id="face-btn-front" onclick="setFaceState('front')">전면부 (SVC 용품)</button>
+                    <button class="door-btn" id="face-btn-back" onclick="setFaceState('back')">후면부 (사전기내식)</button>
+                </div>
+
+                <!-- Drawer Chip Selector Bar (1단 ~ 5단) -->
+                <div class="drawer-chips-bar" id="drawer-chips-bar" style="display:none;">
+                    <button class="drawer-chip active" id="chip-d1" onclick="setDrawerStep(1)">1단 (Top/상단)</button>
+                    <button class="drawer-chip" id="chip-d2" onclick="setDrawerStep(2)">2단</button>
+                    <button class="drawer-chip" id="chip-d3" onclick="setDrawerStep(3)">3단</button>
+                    <button class="drawer-chip" id="chip-d4" onclick="setDrawerStep(4)">4단</button>
+                    <button class="drawer-chip" id="chip-d5" onclick="setDrawerStep(5)">5단 (Bottom/하단)</button>
+                </div>
+
+                <!-- TALL PORTRAIT PHOTO STAGE FRAME -->
+                <div class="photo-view-stage" id="photo-stage">
+                    <img id="cart-photo-img" src="" alt="카트 세로 실사" style="display:none;" onerror="handleImageError()">
+                    <div class="photo-placeholder" id="cart-photo-fallback">
+                        <div class="p-icon">📷</div>
+                        <div class="p-status" id="p-expected-title">카트 실사 촬영 대기</div>
+                        <div class="p-filename" id="p-expected-filename">fwd_crew_closed.jpg</div>
+                        <div class="p-desc" id="p-expected-desc">아래 업로드 버튼으로 사진을 등록하세요.</div>
+                    </div>
+                </div>
+
+                <!-- 📁 UPLOAD & DELETE CONTROLS -->
+                <div class="upload-controls">
+                    <label class="upload-btn" id="upload-label" for="photo-upload-input">
+                        <span>📁 사진 업로드</span>
+                    </label>
+                    <input type="file" id="photo-upload-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+                    <button class="delete-btn" id="delete-photo-btn" onclick="deleteCurrentPhoto()" style="display:none;">🗑️ 사진 삭제</button>
+                </div>
+                <div class="upload-slot-label" id="upload-slot-label"></div>
+            </div>
+
+            <div class="detail-content" id="detail-content"></div>
+
+            <div class="detail-note" id="detail-note" style="display:none">
+                <span style="font-size:16px;">💡</span>
+                <p id="detail-note-text"></p>
+            </div>
+
+            <div class="detail-footer">
+                <button class="detail-close-btn" onclick="closeDetail()">확인 완료 (닫기)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+    <script>
+    // ─────────────── CARTS DATA CONFIGURATION WITH IMAGES & DRAWERS ───────────────
+    const carts = {
+        'fwd-crew': {
+            name: '크루밀 하프카트',
+            icon: '👨‍✈️',
+            color: '#10b981',
+            position: 'FWD 갤리 · L1 사이드 (상단)',
+            type: 'half',
+            idPrefix: 'fwd_crew',
+            items: [
+                '운항 / 객실 승무원 식사 (Crew Meal)',
+                '편명 / 날짜 / 목적지 라벨 확인',
+                '탑재 수량: 운항 승무원 수 기준 편성',
+                '보관 온도: 냉장 유지 필수',
+                'Seal 상태 확인 (파손 여부 검수)'
+            ],
+            note: '승무원 식사는 출발 전 탑재 수량을 반드시 확인합니다.'
+        },
+        'fwd-water': {
+            name: '사전기내식용 생수 하프카트',
+            icon: '💧',
+            color: '#3b82f6',
+            position: 'FWD 갤리 · L1 사이드 (하단)',
+            type: 'half',
+            idPrefix: 'fwd_water',
+            items: [
+                '사전기내식 제공 시 함께 서비스할 개별 생수',
+                '500ml 또는 330ml 페트병 생수',
+                '사전기내식 탑재 수량에 맞추어 탑재',
+                '전방(FWD) 좌석 승객 전용 제공'
+            ],
+            note: '사전기내식용 생수는 반드시 전방(FWD)에 탑재합니다. 후방(AFT) 생수와 혼동에 주의하세요.'
+        },
+        'fwd-svc': {
+            name: 'SVC 아이템 / 2L생수 하프카트',
+            icon: '🧴',
+            color: '#f97316',
+            position: 'FWD 갤리 · R1 사이드 (상단)',
+            type: 'half',
+            idPrefix: 'fwd_svc',
+            items: [
+                '숟가락, 젓가락, 스포키 (Spork)',
+                '물티슈, 볼펜, 여분 Seal 스티커',
+                '사전기내식 라벨 스티커 (좌석번호 표시용)',
+                '냅킨 팩, 종이컵 (Hot/Cold 겸용)',
+                '클링 랩 롤 (포장 및 보관용)',
+                '2L 생수 — <span class="highlight">반드시 눕혀서</span> 탑재'
+            ],
+            note: '서비스 전 기내 용품 수량을 점검합니다. 2L 생수는 세워서 탑재할 경우 넘어질 수 있으므로 반드시 눕혀서 배치합니다.'
+        },
+        'fwd-preorder': {
+            name: '사전기내식 추가탑재 하프카트',
+            icon: '🍱',
+            color: '#ef4444',
+            position: 'FWD 갤리 · R1 사이드 (중단 - 옵션A)',
+            type: 'half',
+            routeDependent: true,
+            idPrefix: 'fwd_preorder',
+            items: [
+                '사전기내식 트레이 (추가 탑재분)',
+                '편명 및 O/B, I/B 구분 라벨 확인',
+                'Seal 파손 여부 검수',
+                'Loading Sheet와 좌석번호/수량 대조'
+            ],
+            note: '노선 수요에 따라 탑재되며, 에어카페 추가탑재 옵션으로 대체될 수 있습니다.'
+        },
+        'fwd-aircafe1': {
+            name: '에어카페 추가탑재 하프카트 ①',
+            icon: '☕',
+            color: '#8b5cf6',
+            position: 'FWD 갤리 · R1 사이드 (중단 - 옵션B)',
+            type: 'half',
+            routeDependent: true,
+            idPrefix: 'fwd_aircafe1',
+            items: [
+                '에어카페 판매용 상품 (추가분)',
+                '스낵류 (과자, 초콜릿, 젤리 등)',
+                '캔음료 및 주스류',
+                '시즌 한정 기획 상품'
+            ],
+            note: '사전기내식 대신 에어카페 수요가 많은 노선에 탑재됩니다.'
+        },
+        'fwd-aircafe2': {
+            name: '에어카페 추가탑재 하프카트 ②',
+            icon: '☕',
+            color: '#8b5cf6',
+            position: 'FWD 갤리 · R1 사이드 (중단 - 옵션B)',
+            type: 'half',
+            routeDependent: true,
+            idPrefix: 'fwd_aircafe2',
+            items: [
+                '에어카페 컵라면 추가분',
+                '핫음료 세트 (커피, 차)',
+                '에어카페 서비스 용품 (컵, 스틱)'
+            ],
+            note: '에어카페 추가 ① 하프카트와 함께 운영됩니다.'
+        },
+        'fwd-acml': {
+            name: 'ACML 하프카트',
+            icon: '✈️',
+            color: '#6b7280',
+            position: 'FWD 갤리 · R1 사이드 (하단)',
+            type: 'half',
+            conditional: true,
+            conditionLabel: 'Business Light 항공기 전용',
+            idPrefix: 'fwd_acml',
+            items: [
+                'ACML (Air Cafe Meal) 비즈니스 전용 물품',
+                'Business Light 항공기 전용 탑재',
+                '해당 노선 구성에 맞춰 비치'
+            ],
+            note: '비즈니스 라이트(B/L) 항공기에만 탑재되며, 일반 항공기에서는 빈 슬롯으로 운영됩니다.'
+        },
+
+        /* ─── AFT GALLEY CARTS ─── */
+        'aft-ac1': {
+            name: '에어카페 풀카트 ①',
+            icon: '☕',
+            color: '#8b5cf6',
+            position: 'AFT 갤리 · L2 도어 사이드 (좌측 ①)',
+            type: 'full',
+            idPrefix: 'aft_aircafe1',
+            items: [
+                '컵라면 (신라면, 진라면 등)',
+                '스낵류 (과자, 초콜릿, 젤리 등)',
+                '캔음료 및 주스류',
+                '에어카페 POS 결제 단말기 보관'
+            ],
+            note: '에어카페 메인 판매 카트입니다. L2 도어 사이드에 위치합니다.'
+        },
+        'aft-ac2': {
+            name: '에어카페 풀카트 ②',
+            icon: '☕',
+            color: '#8b5cf6',
+            position: 'AFT 갤리 · L2 도어 사이드 (좌측 ②)',
+            type: 'full',
+            idPrefix: 'aft_aircafe2',
+            items: [
+                '컵라면 및 스낵 추가 재고',
+                '핫음료 세트 (원두커피, 차 종류)',
+                '시즌 한정 메뉴 상품',
+                '에어카페 컵, 빨대, 스틱 등 소모품'
+            ],
+            note: '에어카페 풀카트 ①과 함께 L2 사이드에 위치합니다.'
+        },
+        'aft-svc': {
+            name: 'SVC 아이템(전면) / 사전기내식(후면) 풀카트',
+            icon: '🔄',
+            color: '#f97316',
+            position: 'AFT 갤리 · 가운데 (중앙)',
+            type: 'full',
+            dualSide: true,
+            idPrefixFront: 'aft_svc_front',
+            idPrefixBack: 'aft_svc_back',
+            frontItems: [
+                '수저, 젓가락, 스포키 (Spork)',
+                '냅킨 팩, 종이컵',
+                '물티슈, 볼펜, 클링 랩',
+                '2L 생수 — <span class="highlight">반드시 눕혀서</span> 탑재'
+            ],
+            backItems: [
+                '사전기내식 트레이 (좌석번호 라벨)',
+                '특별식 (SPML) 식별표',
+                'Seal 상태 및 Loading Sheet 대조'
+            ],
+            note: '전면(SVC 용품)과 후면(사전기내식)이 구분된 듀얼 도어 카트입니다.'
+        },
+        'aft-df1': {
+            name: '기내 면세 풀카트 ①',
+            icon: '🛍️',
+            color: '#ec4899',
+            position: 'AFT 갤리 · R2 도어 사이드 (우측 ①)',
+            type: 'full',
+            idPrefix: 'aft_dutyfree1',
+            items: [
+                '면세 화장품 / 스킨케어류',
+                '면세 향수',
+                '면세 주류 (위스키, 와인 등)',
+                '면세 담배',
+                'SELL 표시 라벨 및 재고 관리 시트'
+            ],
+            note: 'R2 도어 사이드 위치. SELL 표시 카트로 고정 상태 점검이 필수입니다.'
+        },
+        'aft-df2': {
+            name: '기내 면세 풀카트 ②',
+            icon: '🛍️',
+            color: '#ec4899',
+            position: 'AFT 갤리 · R2 도어 사이드 (우측 ②)',
+            type: 'full',
+            idPrefix: 'aft_dutyfree2',
+            items: [
+                '면세 패션잡화 / 액세서리',
+                '면세 건강식품 / 스낵',
+                '면세 전자제품 / 기타 기념품',
+                '면세 재고 수불 관리표'
+            ],
+            note: '면세 카트 ①과 함께 R2 사이드에 위치합니다.'
+        }
+    };
+
+    // ─────────────── STATE VARIABLES ───────────────
+    let currentGalley = 'fwd';
+    let currentDisplayMode = 'photo';
+    let currentConfig = 'a';
+
+    let activeCartObj = null;
+    let currentPhotoMode = 'closed'; // 'closed' | 'open' | 'drawer'
+    let currentDrawerStep = 1;      // 1, 2, 3, 4, 5
+    let currentFaceState = 'front';  // 'front' | 'back' (for dualSide)
+
+    // ─────────────── GALLEY & DISPLAY SWITCHING ───────────────
+    function switchGalley(galley) {
+        if (galley === currentGalley) return;
+        currentGalley = galley;
+
+        document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${galley}`).classList.add('active');
+
+        document.querySelectorAll('.minimap-zone.fwd-zone, .minimap-zone.aft-zone')
+            .forEach(z => z.classList.remove('active'));
+        document.getElementById(`mm-${galley}`).classList.add('active');
+
+        document.querySelectorAll('.galley-view').forEach(v => v.classList.add('hidden'));
+        document.getElementById(`galley-${galley}`).classList.remove('hidden');
+
+        document.getElementById('config-toggle').style.display = (galley === 'fwd') ? 'flex' : 'none';
+    }
+
+    function switchDisplayMode(mode) {
+        currentDisplayMode = mode;
+
+        document.querySelectorAll('.display-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById(`mode-${mode}`).classList.add('active');
+
+        const fwdPhoto = document.getElementById('fwd-photo-wrap');
+        const fwdGraphic = document.getElementById('fwd-graphic-wrap');
+        const aftPhoto = document.getElementById('aft-photo-wrap');
+        const aftGraphic = document.getElementById('aft-graphic-wrap');
+
+        if (mode === 'photo') {
+            fwdPhoto.style.display = 'flex';
+            fwdGraphic.style.display = 'none';
+            aftPhoto.style.display = 'flex';
+            aftGraphic.style.display = 'none';
+        } else {
+            fwdPhoto.style.display = 'none';
+            fwdGraphic.style.display = 'block';
+            aftPhoto.style.display = 'none';
+            aftGraphic.style.display = 'block';
+        }
+    }
+
+    function switchConfig(config) {
+        if (config === currentConfig) return;
+        currentConfig = config;
+
+        document.querySelectorAll('.config-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`cfg-${config}`).classList.add('active');
+
+        const configA = document.querySelectorAll('.config-a');
+        const configB = document.querySelectorAll('.config-b');
+
+        if (config === 'a') {
+            configA.forEach(c => c.classList.remove('cfg-hidden'));
+            configB.forEach(c => c.classList.add('cfg-hidden'));
+        } else {
+            configA.forEach(c => c.classList.add('cfg-hidden'));
+            configB.forEach(c => c.classList.remove('cfg-hidden'));
+        }
+    }
+
+    // ─────────────── SHOW DETAIL MODAL ───────────────
+    function showDetail(cartId) {
+        const cart = carts[cartId];
+        if (!cart) return;
+
+        activeCartObj = cart;
+        currentPhotoMode = 'closed';
+        currentDrawerStep = 1;
+        currentFaceState = 'front';
+
+        const panel = document.getElementById('detail-panel');
+        panel.style.setProperty('--detail-color', cart.color);
+
+        document.getElementById('detail-accent').style.background =
+            `linear-gradient(90deg, ${cart.color}, color-mix(in srgb, ${cart.color} 50%, white))`;
+
+        const iconWrap = document.getElementById('detail-icon-wrap');
+        iconWrap.style.background = `${cart.color}18`;
+        iconWrap.style.borderColor = `${cart.color}25`;
+        document.getElementById('detail-icon').textContent = cart.icon;
+
+        document.getElementById('detail-title').textContent = cart.name;
+        document.getElementById('detail-pos').textContent = cart.position;
+
+        let badgesHTML = '';
+        badgesHTML += `<span class="d-badge type-${cart.type}">${cart.type === 'half' ? 'HALF CART' : 'FULL CART'}</span>`;
+        if (cart.dualSide) badgesHTML += '<span class="d-badge dual-side">양면 사용 카트</span>';
+        if (cart.routeDependent) badgesHTML += '<span class="d-badge route-dep">노선별 옵션</span>';
+        if (cart.conditional) badgesHTML += `<span class="d-badge conditional">${cart.conditionLabel}</span>`;
+        document.getElementById('detail-badges').innerHTML = badgesHTML;
+
+        // Render photo stage & controls
+        renderModalPhoto();
+
+        // Render Item list text
+        let contentHTML = '';
+        if (cart.dualSide) {
+            contentHTML += '<div class="detail-section">';
+            contentHTML += '<div class="detail-section-title">📦 전면부 — SVC 아이템 & 2L 생수</div>';
+            contentHTML += '<ul class="detail-items">';
+            cart.frontItems.forEach(item => { contentHTML += `<li>${item}</li>`; });
+            contentHTML += '</ul></div>';
+
+            contentHTML += '<div class="detail-section">';
+            contentHTML += '<div class="detail-section-title">📦 후면부 — 사전기내식 트레이</div>';
+            contentHTML += '<ul class="detail-items">';
+            cart.backItems.forEach(item => { contentHTML += `<li>${item}</li>`; });
+            contentHTML += '</ul></div>';
+        } else {
+            contentHTML += '<div class="detail-section">';
+            contentHTML += '<div class="detail-section-title">📦 상세 탑재 물품</div>';
+            contentHTML += '<ul class="detail-items">';
+            cart.items.forEach(item => { contentHTML += `<li>${item}</li>`; });
+            contentHTML += '</ul></div>';
+        }
+        document.getElementById('detail-content').innerHTML = contentHTML;
+
+        const noteEl = document.getElementById('detail-note');
+        if (cart.note) {
+            noteEl.style.display = 'flex';
+            document.getElementById('detail-note-text').textContent = cart.note;
+        } else {
+            noteEl.style.display = 'none';
+        }
+
+        document.getElementById('modal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // ─────────────── MODAL PORTRAIT PHOTO STAGE RESOLVER ───────────────
+    function renderModalPhoto() {
+        if (!activeCartObj) return;
+
+        // Dual side face tabs (front vs back for aft-svc)
+        const dualTabs = document.getElementById('dual-face-tabs');
+        if (activeCartObj.dualSide) {
+            dualTabs.style.display = 'flex';
+            document.querySelectorAll('#dual-face-tabs .door-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`face-btn-${currentFaceState}`).classList.add('active');
+        } else {
+            dualTabs.style.display = 'none';
+        }
+
+        // Photo mode buttons (closed / open / drawer)
+        document.querySelectorAll('#photo-door-btns .door-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`mode-btn-${currentPhotoMode}`).classList.add('active');
+
+        // Drawer chips bar visibility
+        const chipsBar = document.getElementById('drawer-chips-bar');
+        if (currentPhotoMode === 'drawer') {
+            chipsBar.style.display = 'flex';
+            document.querySelectorAll('.drawer-chip').forEach(c => c.classList.remove('active'));
+            document.getElementById(`chip-d${currentDrawerStep}`).classList.add('active');
+        } else {
+            chipsBar.style.display = 'none';
+        }
+
+        // Determine base file prefix
+        let prefix = '';
+        if (activeCartObj.dualSide) {
+            prefix = (currentFaceState === 'front') ? activeCartObj.idPrefixFront : activeCartObj.idPrefixBack;
+        } else {
+            prefix = activeCartObj.idPrefix;
+        }
+
+        // Resolve exact filename
+        let filename = '';
+        let titleLabel = '';
+        let descLabel = '';
+
+        if (currentPhotoMode === 'closed') {
+            filename = `${prefix}_closed.jpg`;
+            titleLabel = '🔒 도어 닫힘 (세로 외부 실사)';
+            descLabel = '세로형으로 촬영된 카트 외관 전면 사진입니다.';
+        } else if (currentPhotoMode === 'open') {
+            filename = `${prefix}_open.jpg`;
+            titleLabel = '🔓 도어 열림 (세로 정면 실사)';
+            descLabel = '카트 문을 연 상태에서 정면에서 세로로 촬영한 실사 사진입니다.';
+        } else if (currentPhotoMode === 'drawer') {
+            filename = `${prefix}_drawer${currentDrawerStep}.jpg`;
+            titleLabel = `📦 ${currentDrawerStep}단 드로워 (상부 위에서 촬영한 내부)`;
+            descLabel = `카트 ${currentDrawerStep}단 서랍 내부 구성을 위에서 아래로(Top-Down) 촬영한 사진입니다.`;
+        }
+
+        const imgEl = document.getElementById('cart-photo-img');
+        const fallbackEl = document.getElementById('cart-photo-fallback');
+        const expTitleEl = document.getElementById('p-expected-title');
+        const expNameEl = document.getElementById('p-expected-filename');
+        const expDescEl = document.getElementById('p-expected-desc');
+        const deleteBtnEl = document.getElementById('delete-photo-btn');
+        const slotLabelEl = document.getElementById('upload-slot-label');
+
+        expTitleEl.textContent = titleLabel;
+        expNameEl.textContent = filename;
+        expDescEl.textContent = descLabel;
+        slotLabelEl.textContent = `저장 슬롯: ${filename}`;
+
+        // LocalStorage에서 저장된 사진 확인
+        const storageKey = `cart_photo_${filename}`;
+        const savedData = localStorage.getItem(storageKey);
+
+        if (savedData) {
+            imgEl.src = savedData;
+            imgEl.style.display = 'block';
+            fallbackEl.style.display = 'none';
+            deleteBtnEl.style.display = 'inline-flex';
+        } else {
+            imgEl.style.display = 'none';
+            imgEl.src = '';
+            fallbackEl.style.display = 'flex';
+            deleteBtnEl.style.display = 'none';
+        }
+    }
+
+    // ─────────────── UPLOAD HANDLER ───────────────
+    function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!activeCartObj) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+
+            // 현재 슬롯 파일명 계산
+            let prefix = '';
+            if (activeCartObj.dualSide) {
+                prefix = (currentFaceState === 'front') ? activeCartObj.idPrefixFront : activeCartObj.idPrefixBack;
+            } else {
+                prefix = activeCartObj.idPrefix;
+            }
+            let filename = '';
+            if (currentPhotoMode === 'closed') {
+                filename = `${prefix}_closed.jpg`;
+            } else if (currentPhotoMode === 'open') {
+                filename = `${prefix}_open.jpg`;
+            } else if (currentPhotoMode === 'drawer') {
+                filename = `${prefix}_drawer${currentDrawerStep}.jpg`;
+            }
+
+            const storageKey = `cart_photo_${filename}`;
+            try {
+                localStorage.setItem(storageKey, dataUrl);
+                showUploadToast(`✅ 저장 완료! (${filename})`);
+            } catch(err) {
+                showUploadToast('⚠️ 저장 공간이 부족합니다. 일부 사진을 삭제해 주세요.');
+            }
+
+            // 화면에 즉시 표시
+            const imgEl = document.getElementById('cart-photo-img');
+            const fallbackEl = document.getElementById('cart-photo-fallback');
+            imgEl.src = dataUrl;
+            imgEl.style.display = 'block';
+            fallbackEl.style.display = 'none';
+            document.getElementById('delete-photo-btn').style.display = 'inline-flex';
+        };
+        reader.readAsDataURL(file);
+
+        // input 초기화 (같은 파일 재업로드 허용)
+        event.target.value = '';
+    }
+
+    // ─────────────── DELETE HANDLER ───────────────
+    function deleteCurrentPhoto() {
+        if (!activeCartObj) return;
+
+        let prefix = '';
+        if (activeCartObj.dualSide) {
+            prefix = (currentFaceState === 'front') ? activeCartObj.idPrefixFront : activeCartObj.idPrefixBack;
+        } else {
+            prefix = activeCartObj.idPrefix;
+        }
+        let filename = '';
+        if (currentPhotoMode === 'closed') {
+            filename = `${prefix}_closed.jpg`;
+        } else if (currentPhotoMode === 'open') {
+            filename = `${prefix}_open.jpg`;
+        } else if (currentPhotoMode === 'drawer') {
+            filename = `${prefix}_drawer${currentDrawerStep}.jpg`;
+        }
+
+        const storageKey = `cart_photo_${filename}`;
+        localStorage.removeItem(storageKey);
+
+        const imgEl = document.getElementById('cart-photo-img');
+        const fallbackEl = document.getElementById('cart-photo-fallback');
+        imgEl.style.display = 'none';
+        imgEl.src = '';
+        fallbackEl.style.display = 'flex';
+        document.getElementById('delete-photo-btn').style.display = 'none';
+
+        showUploadToast(`🗑️ 삭제 완료 (${filename})`);
+    }
+
+    // ─────────────── TOAST NOTIFICATION ───────────────
+    function showUploadToast(message) {
+        let toast = document.getElementById('upload-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'upload-toast';
+            toast.style.cssText = `
+                position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+                background: rgba(16,185,129,0.95); color: #fff;
+                padding: 10px 22px; border-radius: 20px;
+                font-size: 13px; font-weight: 600;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                z-index: 9999; transition: opacity 0.4s;
+                backdrop-filter: blur(8px);
+            `;
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2800);
+    }
+
+    function handleImageError() {
+        document.getElementById('cart-photo-img').style.display = 'none';
+        document.getElementById('cart-photo-fallback').style.display = 'flex';
+    }
+
+    function setPhotoMode(mode) {
+        currentPhotoMode = mode;
+        renderModalPhoto();
+    }
+
+    function setDrawerStep(step) {
+        currentDrawerStep = step;
+        renderModalPhoto();
+    }
+
+    function setFaceState(face) {
+        currentFaceState = face;
+        renderModalPhoto();
+    }
+
+    function closeDetail(e) {
+        if (e && e.target !== e.currentTarget) return;
+        document.getElementById('modal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDetail();
+    });
+    </script>
+</body>
+</html>
